@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    	<script type="text/javascript" src="cordova.js"></script>
+        <script src="jquery-2.1.1/jquery-2.1.1.min.js""></script>
+		<script src="jquery.mobile-1.4.4/jquery.mobile-1.4.4.min.js"></script>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+        <title>Hello World</title>
+        <link rel="stylesheet" href="jquery.mobile-1.4.4/jquery.mobile-1.4.4.min.css" />
+        
+    </head>
+    <body>
+ <div data-role="page">
+  <div data-role="header" data-position="fixed" data-theme="b">
+    <h1>Contact List</h1>
+  </div>
+  <div data-role="content">
+     <ul id="SoccerPlayerList">
+    </ul>
+  </div>
+</div>
+<!--end of Soccer Player Page--->
+<script type="text/javascript">
+    //add listener when device ready
+    document.addEventListener("deviceready", onDeviceReady, false);
+    
+    //function will be called when device ready
+    function onDeviceReady(){
+    	try
+    	{
+	    	var options = new ContactFindOptions();
+	        options.filter = "";
+	        options.multiple = true;
+	        
+	        //var filter1 = ["displayName", "addresses"];
+	        //navigator.contacts.find(filter1, onSuccess1, onError, options);
+	        
+	        var filter2 = ["displayName", "phoneNumbers"];
+	        navigator.contacts.find(filter2, onSuccess2, onError, options);
+	    }
+	    catch(ex)
+	    {
+	    	alert(ex.message);
+	    }
+	}
+ 	
+ 	function onError(contactError) {
+        alert('onError!');
+    }
+    
+    function onSuccess2(contacts) {
+    	
+    	try
+    	{
+	    	$('#SoccerPlayerList').empty();
+	    	
+	    	var tags = '';
+	    	
+	        for (var i=0; i<contacts.length; i++) {
+	        
+	        	tags = '<li><a href="#"><h3 class="ui-li-heading">' + contacts[i].displayName + '</h3>';
+	        	
+	        	if (contacts[i].phoneNumbers != null)
+	        	{	        	
+		        	for (var j = 0; j < contacts[i].phoneNumbers.length; j++) {
+		        		tags += '<p class="ui-li-desc">'+ contacts[i].phoneNumbers[j].type + ' ' + contacts[i].phoneNumbers[j].value + '</p>';
+		        	}
+	        	}
+	        	
+	        	tags += '</a></li>';
+	        	
+	        	$('#SoccerPlayerList').append(tags);
+	        }
+	        
+	        $('#SoccerPlayerList').listview();
+        }
+        catch(ex)
+        {
+        	alert(ex.message);
+        }
+        
+    }
+
+    function onSuccess1(contacts){
+    	
+		$('#SoccerPlayerList').empty();
+		
+ 		for (var i = 0; i < contacts.length; i++) {
+ 			for (var j = 0; j < contacts[i].addresses.length; j++) {
+                alert("Pref: "           + contacts[i].addresses[j].pref          + "\n" +
+                      "Type: "           + contacts[i].addresses[j].type          + "\n" +
+                      "Formatted: "      + contacts[i].addresses[j].formatted     + "\n" +
+                      "Street Address: " + contacts[i].addresses[j].streetAddress + "\n" +
+                      "Locality: "       + contacts[i].addresses[j].locality      + "\n" +
+                      "Region: "         + contacts[i].addresses[j].region        + "\n" +
+                      "Postal Code: "    + contacts[i].addresses[j].postalCode    + "\n" +
+                      "Country: "        + contacts[i].addresses[j].country);
+            }
+        }
+ 		
+ 		/*
+ 		for (var i = 0 ; i < len ; i++){
+        	var row = result.rows.item(i);            
+            $('#SoccerPlayerList').append('<li><a href="#"><h3 class="ui-li-heading">'+row.Name+'</h3><p class="ui-li-desc">Club '+row['Club']+'</p></a></li>');
+        }
+ 		*/
+ 		
+        $('#SoccerPlayerList').listview();
+    }
+        </script>
+</body>
+</html>

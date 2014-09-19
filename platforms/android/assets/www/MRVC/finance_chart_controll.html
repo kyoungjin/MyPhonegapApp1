@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <link rel="stylesheet" type="text/css" href="css/gantt.css"/>
+        <title>
+        </title>
+        <link rel="stylesheet" href="css/jquery.mobile-1.2.0.min.css" />
+		<script src="js/config.js">
+        </script>
+        <script src="js/jquery.min.js">
+        </script>
+        <script src="js/jquery.mobile-1.2.0.min.js">
+        </script>
+        <script src="js/highchart.js">
+        </script>
+        <script>
+            try {
+
+			    $(function() 
+				{
+					 $("#phase").bind( "change", function(event, ui) 
+					 {
+						$.ajax
+						({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				          complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"work",
+						  data: "project_type_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#work').empty().append(msg);
+						  //refresh work
+						  $('#work').selectmenu('refresh', true);
+						  //refresh activity
+						  $('#activity').empty().append('<option value=0>Select Contract</option>')
+						  $('#activity').selectmenu('refresh',true);
+						});
+					});
+					
+					$("#work").bind( "change", function(event, ui) 
+					 {
+						$.ajax({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				          complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"contract",
+						  data: "project_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#activity').empty().append(msg);
+						  $('#activity').selectmenu('refresh', true);
+						});
+					});
+					/*$("#activity").bind( "change", function(event, ui) 
+					{
+						$('#barchart').removeClass('ui-disabled');
+						
+						var activityval= parseInt($('#activity').val());
+						if(parseInt(activityval)==1)
+						{
+							$('#barchart').addClass('ui-disabled');
+						}
+					});*/
+					
+				});
+				$(document).ready(function(){
+				
+			    //attach a jQuery live event to the button
+				//$('#barchart').addClass('ui-disabled');
+				
+				$.ajax({
+				  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+		          complete: function() { $.mobile.loading('hide'); },
+				  type: "POST",
+				  url: web_service_path+"project",
+
+				}).done(function( msg ) {
+				  $('#phase').empty().append(msg);
+				});
+												
+				$( "#barchart" ).on( "click", function(event, ui) {
+					$.mobile.loading('show'); 
+					$.ajax({
+			          complete: function() { $.mobile.loading('hide'); },
+					  type: "POST",
+					  url: web_service_path+"naitik",
+					  data: { phase: $('#phase').val(), work: $('#work').val(),activity: $('#activity').val()},
+					  success: function (response) {
+						//var str = 'something -- something_else';
+						if(response.length!=2)
+						{ 
+						
+						//added by naitik joshi
+						var xaxisarray = new Array();
+						var totalexp = new Array();
+						var totalbudget = new Array();
+
+						var obj = $.parseJSON(response);
+						
+						$.each( obj, function( key, value ) {
+							xaxisarray.push(value[5]);
+							totalbudget.push(parseInt(value[1], 10));
+							totalexp.push(parseInt(value[3], 10));
+						});
+						
+							 var chart;
+								$(document).ready(function() {
+									chart = new Highcharts.Chart({
+										chart: {
+											renderTo: 'container',
+											defaultSeriesType: 'column'
+										},
+										title: {
+											text: ''
+										},
+										subtitle: {
+											text: ''
+										},
+										xAxis: {
+											categories: xaxisarray,
+											title: {
+												text: null
+											}
+										},
+										yAxis: {
+											min: 0,
+											title: {
+												text: 'Allocated budget',
+												align: 'high'
+											}
+										},
+										tooltip: {
+											formatter: function() {
+												return ''+
+													this.series.name +': '+ this.y +'';
+											}
+										},
+										plotOptions: {
+											column: {
+												pointPadding: 0.2,
+												borderWidth: 0
+											}
+										},
+										legend: {
+											layout: 'vertical',
+											align: 'right',
+											verticalAlign: 'top',
+											x: -100,
+											y: 100,
+											floating: true,
+											borderWidth: 1,
+											backgroundColor: '#FFFFFF',
+											shadow: true
+										},
+										credits: {
+											enabled: false
+										},
+										series: [{
+												name: 'Total Budget',
+												data: totalbudget
+											}, {
+												name: 'Total Expenditure',
+												data: totalexp
+											}, {
+												name: 'Till Last Year Expenditure',
+												data: totalexp
+											}]
+									});
+								});						
+							}
+							else
+							{
+								$('#container').text('No data found');
+							}
+						},
+					  error: function (xhr, ajaxOptions, thrownError) {
+						alert(xhr.status);
+						alert(ajaxOptions);
+						}
+					})
+					
+				})
+				
+					
+				});
+
+  } catch (error) {
+    console.error("Your javascript has an error: " + error);
+  }
+        </script>
+    </head>
+    <body>
+        <!-- Home -->
+        <div data-role="page" id="page1">
+			<center><h1>Finance Chart</h1></center>
+            <div data-role="content">
+                    <div data-role="fieldcontain">
+                        <label for="phase">
+                            Select Project
+                        </label>
+                        <select id="phase" name="phase" data-theme="b">
+							<option value="0">Select project</option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="work">
+                            Select Work
+                        </label>
+                        <select id="work" name="work" data-theme="b">
+                            <option value="1">
+                                Select work
+                            </option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="activity">
+                            Select Contract
+                        </label>
+                        <select id="activity" name="activity" data-theme="b">
+                            <option value="1">
+                                Select Contract
+                            </option>
+                        </select>
+                    </div>
+					<a id="barchart" data-role="button" data-theme="b" href="#page2" data-inline="true">
+                    Submit
+                	</a>
+					<a id="home" data-role="button" data-theme="b" href="index.html" data-inline="true">
+                    Home
+                	</a>
+            </div>
+        </div>
+		
+		
+		<div data-role="page" id="page2" data-theme="b">
+			
+            <div data-role="content">
+				<a id="barchartback" data-role="button" data-theme="b" href="#page1">
+                    Back
+               	</a>
+               	<center><b>Total Vs. Expenditure Vs. Current year expenditure Vs. Till last year expenditure</b></center>
+				<div id="container" style="width: auto; height: auto; margin: 0 auto"></div>
+				<a id="barchartback2" data-role="button" data-theme="b" href="#page1">
+                    Back
+               	</a>
+            </div>
+        </div>
+    </body>
+</html>

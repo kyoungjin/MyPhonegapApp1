@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <title>
+        </title>
+		<style type="text/css">
+            body{
+                width: 100%;
+                margin: 0 auto;
+                padding: 0;
+            }
+            #loading{
+                width: 100%;
+                position: absolute;
+                top: 12%;
+                left: 12%;
+				margin-top:25%;
+            }
+            #paging .pagination ul li.inactive,
+            #paging .pagination ul li.inactive:hover{
+                background-color:#ededed;
+                color:#bababa;
+                border:1px solid #bababa;
+                cursor: default;
+            }
+            #paging .data ul li{
+                list-style: none;
+                font-family: verdana;
+                margin: 5px 0 5px 0;
+                color: #000;
+                font-size: 13px;
+            }
+
+            #paging .pagination{
+                width: 100%;
+                height: 4%px;
+            }
+            #paging .pagination ul li{
+                list-style: none;
+                float: left;
+                border: 1px solid #006699;
+                padding: 2px 6px 2px 6px;
+                margin: 0 3px 0 3px;
+                font-family: arial;
+                font-size: 14px;
+                color: #006699;
+                font-weight: bold;
+                background-color: #f2f2f2;
+            }
+            #paging .pagination ul li:hover{
+                color: #fff;
+                background-color: #006699;
+                cursor: pointer;
+            }
+			.go_button
+			{
+			background-color:#f2f2f2;border:1px solid #006699;color:#cc0000;padding:2px 6px 2px 6px;cursor:pointer;position:absolute;margin-top:-1px;
+			}
+			.total
+			{
+			float:right;font-family:arial;color:#999;
+			}
+
+        </style>
+
+        <link rel="stylesheet" href="css/jquery.mobile-1.2.0.min.css" />
+		<script src="js/config.js">
+        </script>
+        <script src="js/jquery.min.js">
+        </script>
+        <script src="js/jquery.mobile-1.2.0.min.js">
+        </script>
+        <script src="js/highchart.js">
+        </script>
+        <script>
+		
+            try {
+
+    $(function() 
+				{
+					 $("#phase").bind( "change", function(event, ui) 
+					 {
+						$.ajax
+						({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				          complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"work",
+						  data: "project_type_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#work').empty().append(msg);
+						    //refresh work
+						  $('#work').selectmenu('refresh', true);
+						  //refresh activity
+						  $('#activity').empty().append('<option value=0>Select Contract</option>')
+						  $('#activity').selectmenu('refresh',true);
+						  //disable submit button
+						  $('#barchart').addClass('ui-disabled');
+						});
+					});
+					
+					$("#work").bind( "change", function(event, ui) 
+					 {
+						$.ajax({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				          complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"contract",
+						  data: "project_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#activity').empty().append(msg);
+						  //refresh activity
+						  $('#activity').selectmenu('refresh', true);
+						  //disable ssubmit button
+						  $('#barchart').addClass('ui-disabled');
+						});
+					});
+					$("#activity").bind( "change", function(event, ui) 
+					{
+						$('#barchart').removeClass('ui-disabled');
+						
+						var activityval= parseInt($('#activity').val());
+						if(parseInt(activityval)==0)
+						{
+							$('#barchart').addClass('ui-disabled');
+						}
+					});
+					
+				});
+				$(document).ready(function(){
+				
+				//Pagination code 
+				function loading_show(){
+                    $('#loading').html("<img src='images/loading.gif'/>").fadeIn('fast');
+                }
+                function loading_hide(){
+                    $('#loading').fadeOut('fast');
+                }
+				function loadData(page){
+                    loading_show();                    
+                    $.ajax
+                    ({
+                        type: "POST",
+                        url: web_service_path+"barChart",
+                        data: { phase: $('#phase').val(), work: $('#work').val(),activity: $('#activity').val(), page: page},
+						success: function (response) {
+						//var str = 'something -- something_else';
+
+						var substra = response.split('#^#');
+						var jsonstring = substra[0];
+						var pagingdata = substra[1];
+						
+						if(jsonstring.length!=2)
+						{
+						
+						
+						//arrays of chart
+						var xaxisarray = new Array();
+						var completed = new Array();
+						var total= new Array();						
+						
+						var obj = $.parseJSON(jsonstring);
+						
+						$.each( obj, function( key, value ) {
+							xaxisarray.push(value[5]);
+							total.push(parseInt(value[1], 10));
+							completed.push(parseInt(value[3], 10));
+						});
+
+							 var chart;
+								$(document).ready(function() {
+									chart = new Highcharts.Chart({
+										chart: {
+											renderTo: 'container',
+											defaultSeriesType: 'bar'
+										},
+										title: {
+											text: ''
+										},
+										subtitle: {
+											text: ''
+										},
+										xAxis: {
+											categories: xaxisarray,
+											title: {
+												text: null
+											}
+										},
+										yAxis: {
+											min: 0,
+											title: {
+												text: 'Completed Work',
+												align: 'high'
+											}
+										},
+										tooltip: {
+											formatter: function() {
+												return ''+
+													this.series.name +': '+ this.y +'';
+											}
+										},
+										plotOptions: {
+											bar: {
+												dataLabels: {
+													enabled: true
+												}
+											}
+										},
+										legend: {
+											layout: 'vertical',
+											align: 'right',
+											verticalAlign: 'top',
+											x: -100,
+											y: 100,
+											floating: true,
+											borderWidth: 1,
+											backgroundColor: '#FFFFFF',
+											shadow: true
+										},
+										credits: {
+											enabled: false
+										},
+										series: [{
+												name: 'total %',
+												data: total
+											}, {
+												name: 'completed %',
+												data: completed
+											}]
+									});
+								});
+								$("#paging").ajaxComplete(function(event, request, settings)
+                            	{
+                                	loading_hide();
+	                                $("#paging").html(pagingdata);
+                            	});
+							}
+							else
+							{
+								$('#container').text('No data found');
+							}
+						},
+						error: function (xhr, ajaxOptions, thrownError) {
+							alert(xhr.status);
+							alert(ajaxOptions);
+						}
+                    });
+                }
+                // For first time page load default results
+				$('#paging .pagination li.active').live('click',function(){
+                    var page = $(this).attr('p');
+                    loadData(page);
+                    
+                });           
+                $('#go_btn').live('click',function(){
+                    var page = parseInt($('.goto').val());
+                    var no_of_pages = parseInt($('.total').attr('a'));
+                    if(page != 0 && page <= no_of_pages){
+                        loadData(page);
+                    }else{
+                        alert('Enter a PAGE between 1 and '+no_of_pages);
+                        $('.goto').val("").focus();
+                        return false;
+                    }
+                    
+                });
+				
+				
+				//Pagination code ends
+				
+				
+			    //attach a jQuery live event to the button
+				$('#barchart').addClass('ui-disabled');
+				$.ajax({
+				  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+		          complete: function() { $.mobile.loading('hide'); },
+				  type: "POST",
+				  url: web_service_path+"project",
+
+				}).done(function( msg ) {
+				  $('#phase').empty().append(msg);
+				});
+												
+				$( "#barchart" ).on( "click", function(event, ui) {
+					$.mobile.loading('show'); 
+					loadData(1);
+					
+					
+				})
+				
+					
+				});
+
+  } catch (error) {
+    console.error("Your javascript has an error: " + error);
+  }
+        </script>
+    </head>
+    <body>
+        <!-- Home -->
+        <div data-role="page" id="page1">
+            <div data-role="content">
+				<center><h1>Bar Charts</h1></center>
+                    <div data-role="fieldcontain">
+                        <label for="phase">
+                            Select Project
+                        </label>
+                        <select id="phase" name="phase" data-theme="b">
+							<option value="0">Select project</option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="work">
+                            Select Work
+                        </label>
+                        <select id="work" name="work" data-theme="b">
+                            <option value="1">
+                                Select work
+                            </option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="activity">
+                            Select Contract
+                        </label>
+                        <select id="activity" name="activity" data-theme="b">
+                            <option value="1">
+                                Select Contract
+                            </option>
+                        </select>
+                    </div>
+					<a id="barchart" data-role="button" data-theme="b" href="#page2" data-inline="true">
+                    submit
+                	</a>
+					<a id="home" data-role="button" data-theme="b" href="index.html" data-inline="true" data-ajax="false">
+                    Home
+                	</a>
+            </div>
+        </div>
+		
+		
+		<div data-role="page" id="page2" data-theme="b">
+			
+            <div data-role="content">
+				<a id="barchartback" data-role="button" data-theme="b" href="#page1">
+                    back
+               	</a>
+				<div id="container" style="width: auto; height: 800px; margin: 0 auto"></div>
+				<div id="paging" style="width: auto; height: 25px; margin: 0 auto"></div>
+				<a id="barchartback1" data-role="button" data-theme="b" href="#page1">
+                    back
+               	</a>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <title>
+        </title>
+        <link rel="stylesheet" href="css/jquery.mobile-1.2.0.min.css" />
+		<script src="js/config.js">
+        </script>
+        <script src="js/jquery.min.js">
+        </script>
+        <script src="js/jquery.mobile-1.2.0.min.js">
+        </script>
+        <script src="js/highchart.js">
+        </script>
+        <script>
+            try {
+
+    $(function() 
+				{
+					 $("#phase").bind( "change", function(event, ui) 
+					 {
+						$.ajax
+						({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+			              complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"work",
+						  data: "project_type_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#work').empty().append(msg);
+						  $('#work').selectmenu('refresh', true);
+						  //refresh activity
+						  $('#activity').empty().append('<option value=0>Select Contract</option>')
+						  $('#activity').selectmenu('refresh',true);
+						  //refresh activity
+						  $('#activity2').empty().append('<option value=0>Select Contract</option>')
+						  $('#activity2').selectmenu('refresh',true);
+						  //disable submit button
+						  $('#barchart').addClass('ui-disabled');
+						});
+					});
+					
+					$("#work").bind( "change", function(event, ui) 
+					 {
+						$.ajax({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+			              complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"contract",
+						  data: "project_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#activity').empty().append(msg);
+						  $('#activity').selectmenu('refresh',true);
+						   //refresh activity
+						  $('#activity2').empty().append('<option value=0>Select Activity</option>')
+						  $('#activity2').selectmenu('refresh',true);
+						  //disable submit button
+						  $('#barchart').addClass('ui-disabled');
+						});
+					});
+					
+					$("#activity").bind( "change", function(event, ui) 
+					 {
+						$.ajax({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+			              complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"lineActivityByContract",
+						  data: "activity_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#activity2').empty().append(msg);
+						  $('#activity2').selectmenu('refresh',true);
+						  //disable submit button
+						  //$('#barchart').addClass('ui-disabled');
+						});
+					});
+					
+					$("#activity").bind( "change", function(event, ui) 
+					{
+						$('#barchart').removeClass('ui-disabled');
+
+						var activityval= parseInt($('#activity').val());
+						if(parseInt(activityval)==1)
+						{
+							$('#barchart').addClass('ui-disabled');
+						}
+					});
+					
+				});
+				
+				$(document).ready(function(){
+				
+					$('#barchart').addClass('ui-disabled');
+					$.ajax({
+					  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+					  complete: function() { $.mobile.loading('hide'); },
+					  type: "POST",
+					  url: web_service_path+"project",
+	
+					}).done(function( msg ) {
+					  $('#phase').empty().append(msg);
+					});
+				
+				//bar chart back event
+				/*$( "#barchartback" ).on( "click", function(event, ui) {
+					$('#barchart').addClass('ui-disabled');
+				});*/
+				
+				
+				$( "#barchart" ).on( "click", function(event, ui) {
+					$.ajax({
+					  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+			          complete: function() { $.mobile.loading('hide'); },
+					  type: "POST",
+					  url: web_service_path+"lineChart",
+					  data: { phase: $('#phase').val(), work: $('#work').val(),activity: $('#activity').val(),activity2: $('#activity2').val()},
+					  success: function (response) {
+						
+
+						if(response.length!=2)
+						{
+							var completearray = [];
+							
+							var mystrss = JSON.parse(response);
+						
+							$.each( mystrss, function( key, value ) {
+							
+								var slicestring = value.data.slice(0,-1);
+								
+								var intarray;
+								var convertedarray = new Array();
+								intarray = slicestring.split(",");
+								
+								$.each( intarray, function( key2, value2 ) {
+									convertedarray.push(parseInt(value2, 10));
+								});
+								
+								var testarray = [];
+								testarray['name'] = value.name;
+								
+								testarray['data'] = convertedarray;
+								completearray.push(testarray);
+							
+							});
+						
+						
+							 var chart;
+								$(document).ready(function() {
+									chart = new Highcharts.Chart({
+										chart: {
+											renderTo: 'container',
+											defaultSeriesType: 'line'
+										},
+										title: {
+											text: ''
+										},
+										subtitle: {
+											text: ''
+										},
+										xAxis: {
+											categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+											},
+										yAxis: {
+		                                    title: {
+		                                        text: ''
+		                                    }
+		                                },
+										tooltip: {
+											formatter: function() {
+												return ''+
+													this.series.name +': '+ this.y +'';
+											}
+										},
+										plotOptions: {
+		                                    line: {
+		                                        dataLabels: {
+		                                            enabled: true
+		                                        },
+		                                        enableMouseTracking: false
+		                                    }
+		                                },
+										series: completearray
+									});
+								});
+							}
+							else
+							{
+								$('#container').text('No data found');
+							}
+						},
+					  error: function (xhr, ajaxOptions, thrownError) {
+						alert(xhr.status);
+						alert(ajaxOptions);
+						}
+					})		
+				})
+			});
+  } catch (error) {
+    console.error("Your javascript has an error: " + error);
+  }
+        </script>
+    </head>
+    <body>
+        <!-- Home -->
+        <div data-role="page" id="page1">
+			<center><h1>Line Chart</h1></center>
+            <div data-role="content">
+
+                    <div data-role="fieldcontain">
+                        <label for="phase">
+                            Select Project
+                        </label>
+                        <select id="phase" name="phase" data-theme="b">
+							<option value="0">Select project</option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="work">
+                            Select Work
+                        </label>
+                        <select id="work" name="work" data-theme="b">
+                            <option value="1">
+                                Select work
+                            </option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="activity">
+                            Select Contract
+                        </label>
+                        <select id="activity" name="activity" data-theme="b">
+                            <option value="1">
+                                Select Contract
+                            </option>
+                        </select>
+                    </div>
+					<div data-role="fieldcontain">
+                        <label for="activity2">
+                            Select Activity
+                        </label>
+                        <select id="activity2" name="activity2" data-theme="b">
+                            <option value="1">
+                                Select Activity
+                            </option>
+                        </select>
+                    </div>
+					<a id="barchart" data-role="button" data-theme="b" href="#page2" data-inline="true">
+                    submit
+                	</a>
+					<a id="home" data-role="button" data-theme="b" href="index.html" data-inline="true">
+                    Home
+                	</a>
+            </div>
+        </div>
+		
+		
+		<div data-role="page" id="page2" data-theme="b">
+			
+            <div data-role="content">
+				<a id="barchartback" data-role="button" data-theme="b" href="#page1">
+                    back
+               	</a>
+				<div id="container" style="width: auto; height: auto; margin: 0 auto"></div>
+				<a id="barchartback2" data-role="button" data-theme="b" href="#page1">
+                    back
+               	</a>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <title>
+        </title>
+        <link rel="stylesheet" href="css/jquery.mobile-1.2.0.min.css" />
+        <link rel="stylesheet" type="text/css" href="css/gantt.css"/>
+        <script src="js/jquery.min.js"></script>
+        <script src="js/jquery.mobile-1.2.0.min.js"></script>
+		<script language="javascript" src="js/jsgantt.js"></script>
+		<script src="js/config.js">
+        </script>
+        <script>
+   		values = [];
+   		
+        try {
+				$(function() 
+				{
+					 $("#phase").bind( "change", function(event, ui) 
+					 {
+						$.ajax({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				          complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"work",
+						  data: "project_type_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#work').empty().append(msg);
+						  //refresh work
+						  $('#work').selectmenu('refresh', true);
+						  //refresh activity
+						  $('#activity').empty().append('<option value=0>Select Contract</option>')
+						  $('#activity').selectmenu('refresh',true);
+						  //disable submit button
+						  $('#ganttchart').addClass('ui-disabled');
+						});
+					});
+					
+					$("#work").bind( "change", function(event, ui) 
+					 {
+						$.ajax({
+						  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				          complete: function() { $.mobile.loading('hide'); },
+						  type: "GET",
+						  url: web_service_path+"contract",
+						  data: "project_id="+$(this).val()
+		
+						}).done(function( msg ) {
+						  $('#activity').empty().append(msg);
+						  //refresh activity
+						  $('#activity').selectmenu('refresh', true);
+						  //disable ssubmit button
+						  $('#ganttchart').addClass('ui-disabled');
+						});
+					});
+					
+					$("#activity").bind( "change", function(event, ui) 
+					{
+						$('#ganttchart').removeClass('ui-disabled');
+
+						var activityval= parseInt($('#activity').val());
+						if(parseInt(activityval)==0)
+						{
+							$('#ganttchart').addClass('ui-disabled');
+						}
+					});
+					
+				});
+				
+				
+				$(document).ready(function(){
+
+				$('#ganttchart').addClass('ui-disabled');
+				$.ajax({
+				  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+				  complete: function() { $.mobile.loading('hide'); },
+				  type: "POST",
+				  url: web_service_path+"project",
+
+				}).done(function( msg ) {
+				  $('#phase').empty().append(msg);
+				});
+				
+				
+				$.ajax({
+				  beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+		          complete: function() { $.mobile.loading('hide'); },
+				  type: "POST",
+				  url: web_service_path+"location",
+
+				}).done(function( msg ) {
+				 $('#location').empty().append(msg);
+				});
+				
+				
+				$( "#ganttchart" ).on( "click", function(event, ui) {
+					$.ajax({
+						beforeSend: function() { $.mobile.loading('show'); }, //Show spinner
+			            complete: function() { $.mobile.loading('hide'); },
+					  	type: "POST",
+					  	url: web_service_path+"ganttChart",
+					  	data: { phase: $('#phase').val(), work: $('#work').val(),activity: $('#activity').val(),location: $('#location').val()},
+					  	success: function (response) {
+						
+						var obj = $.parseJSON(response);
+					
+
+						g.clearItem();
+					    g.setShowRes(1); // Show/Hide Responsible (0/1)
+					    g.setShowDur(1); // Show/Hide Duration (0/1)
+					    g.setShowComp(1); // Show/Hide % Complete(0/1)
+					    g.setCaptionType('Resource');  // Set to Show Caption (None,Caption,Resource,Duration,Complete)
+						if( g ) {
+							$.each( obj, function( key, value ) {
+									var startdate = new Date(value.start_date);
+									var enddate = new Date(value.target_date);
+									var startmont=(startdate.getMonth())+1;
+									var convertstdt=startmont+"/"+startdate.getDate()+"/"+startdate.getFullYear();
+									
+									var endmont=(enddate.getMonth())+1;
+									var convertenddt=endmont+"/"+enddate.getDate()+"/"+enddate.getFullYear();
+									var perdone = value.perc_done;
+									
+									g.AddTaskItem(new JSGantt.TaskItem(value.key, value.title , convertstdt, convertenddt, 'FFA500', '#', 0, value.quantity ,value.location,perdone.toPrecision(4), 0, 1, 1, 1));
+									
+			
+								});	
+								
+                                    
+								 g.Draw();
+								 g.DrawDependencies();
+			  				}
+					  	},
+					  	error: function (xhr, ajaxOptions, thrownError) {
+							alert(xhr.status);
+							alert(ajaxOptions);
+						}
+						});
+					});
+							
+				});
+
+  			} 
+	  catch (error) {
+			console.error("Your javascript has an error: " + error);
+	  }
+    </script>
+    </head>
+    <body>
+        <!-- Home -->
+        <div data-role="page" id="page1">
+        	<center><h1>Gantt Chart</h1></center>
+            <div data-role="content">
+                    <div data-role="fieldcontain">
+                        <label for="phase">
+                            Select Project
+                        </label>
+                        <select id="phase" name="phase" data-theme="b">
+							<option value="0">Select project</option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="work">
+                            Select Work
+                        </label>
+                        <select id="work" name="work" data-theme="b">
+                            <option value="1">
+                                Select work
+                            </option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="activity">
+                            Select Contract
+                        </label>
+                        <select id="activity" name="activity" data-theme="b">
+                            <option value="1">
+                                Select Contract
+                            </option>
+                        </select>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="location">
+                            Select location
+                        </label>
+                        <select id="location" name="location" data-theme="b">
+                            <option value="All">
+                                All location
+                            </option>
+                        </select>
+                    </div>
+                    <a id="ganttchart" data-role="button" data-theme="b" href="#page2" data-inline="true">
+                    Submit
+                	</a>
+					<a id="home" data-role="button" data-theme="b" href="index.html" data-inline="true">
+                    Home
+                	</a>
+                </div>
+				</div>
+                <div data-role="page" id="page2" data-theme="b">
+					<div data-role="content">
+					<a id="ganttchartback1" data-role="button" data-theme="b" href="#page1">
+	                    Back
+	               	</a>
+					<div style="position:relative; overflow-x: scroll;" class="gantt" id="GanttChartDIV"></div>
+					<a id="ganttchartback" data-role="button" data-theme="b" href="#page1">
+	                   	Back
+	               	</a>
+	            	</div>
+				</div>
+			</div>	
+        </div>
+		<script>
+			var g = new JSGantt.GanttChart('g',document.getElementById('GanttChartDIV'), 'day');
+		</script>
+    </body>
+</html>
